@@ -1,0 +1,46 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  Build:
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.platform.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Windows (x64),          os: windows-latest, shell: pwsh, flags: -A x64 }
+        - { name: Linux,                  os: ubuntu-20.04,   shell: sh,   flags: -GNinja, prefix: sudo }
+        - { name: MacOS,                  os: macos-latest,   shell: sh,   flags: -DCMAKE_OSX_ARCHITECTURES=arm64\;x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11 }
+
+    steps:
+      - name: Setup Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install ninja-build
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fna-net-patch-sdl2
+
+      - name: Configure CMake
+        run: cmake -B build ${{ matrix.platform.flags }}
+      - name: Build
+        run: cmake --build build/ --config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }} Artifacts ${{ matrix.platform.name }}
+          path: |
+            build/Release/*.dll
+            build/Release/*.lib
+            build/*.so*
+            build/*.dylib
