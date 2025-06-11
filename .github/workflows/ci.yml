@@ -174,3 +174,30 @@ jobs:
       with:
         name: Theorafile-libpowerpc
         path: libtheorafile.so
+
+
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: fna-net-patch
+
+    - uses: nttld/setup-ndk@v1
+      id: setup-ndk
+      with:
+        ndk-version: r21e
+
+    - name: Configure CMake (Release)
+      run: cmake -B release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$(dirname $(which ndk-build))/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-21
+
+    - name: Build (Release)
+      run: cmake --build release/ --config Release
+
+    - name: Archive build result
+      uses: actions/upload-artifact@v4
+      with:
+        name: Theorafile-android-arm64
+        path: release/*.so
